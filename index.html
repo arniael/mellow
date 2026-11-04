@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#16151c">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Mellow</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-mode="local" data-turn="owner">
+
+    <header class="topbar">
+        <div class="bar-side">
+            <button type="button" class="icon-btn" data-action="openInfo" data-i18n-aria="header.alert">⚠️</button>
+            <button type="button" class="icon-btn" data-action="openAbout" data-i18n-aria="header.help">❓</button>
+        </div>
+        <button type="button" id="status-pill" class="pill" data-action="openLink" data-state="local">
+            <span class="dot" aria-hidden="true"></span><span id="status-text"></span>
+        </button>
+        <div class="bar-side end">
+            <button type="button" id="btn-share" class="icon-btn" data-action="share" data-i18n-aria="header.share">📤</button>
+            <button type="button" id="btn-config" class="icon-btn" data-action="openConfig" data-i18n-aria="header.settings">⚙️</button>
+        </div>
+    </header>
+
+    <main id="chat" role="log" aria-live="polite"></main>
+
+    <footer id="composer">
+        <div id="turn-banner" role="status"></div>
+        <div id="quick-phrases" hidden></div>
+        <div class="input-row">
+            <input type="text" id="message-input" data-i18n-placeholder="input.placeholder" autocomplete="off" autocorrect="off" enterkeyhint="send" maxlength="2000">
+            <button type="button" id="send-btn" data-action="send" data-i18n-aria="send">➤</button>
+        </div>
+        <div class="action-row">
+            <button type="button" id="switch-btn" class="chip-btn" data-action="switch"></button>
+            <button type="button" id="vocal-btn" class="chip-btn alt" data-action="vocal" data-i18n="btn.vocal"></button>
+            <button type="button" id="listen-btn" class="chip-btn alt" data-action="listen" hidden></button>
+        </div>
+    </footer>
+
+    <div id="shield" hidden><p data-i18n="shield.text"></p></div>
+
+    <div id="toast" popover="manual" role="status" aria-live="polite">
+        <span id="toast-text"></span>
+        <button type="button" id="toast-action" data-action="toastAction" hidden></button>
+    </div>
+
+    <!-- BIENVENUE -->
+    <dialog id="welcome-dlg" class="sheet">
+        <div class="sheet-body center">
+            <h2 data-i18n="welcome.title"></h2>
+            <p class="lead" data-i18n="welcome.q"></p>
+            <p class="note" data-i18n="welcome.hint"></p>
+            <input type="text" id="welcome-name" class="field big" data-i18n-placeholder="welcome.placeholder" autocomplete="off">
+            <button type="button" class="btn primary" data-action="welcomeNext" data-i18n="welcome.next"></button>
+        </div>
+    </dialog>
+
+    <!-- VERROUILLAGE -->
+    <dialog id="lock-dlg" class="sheet">
+        <div class="sheet-body center">
+            <h2 data-i18n="lock.title"></h2>
+            <input type="password" id="lock-input" class="field big" inputmode="numeric" maxlength="6" autocomplete="off" data-i18n-placeholder="lock.ph">
+            <p id="lock-error" class="error" data-i18n="lock.wrong" hidden></p>
+            <button type="button" class="btn primary" data-action="unlock" data-i18n="lock.unlock"></button>
+        </div>
+    </dialog>
+
+    <!-- CONNEXION ENTRE APPAREILS -->
+    <dialog id="link-dlg" class="sheet">
+        <div class="sheet-body">
+            <button type="button" class="close" data-action="closeLink" data-i18n-aria="close">&times;</button>
+            <h2 data-i18n="link.title"></h2>
+
+            <section id="lv-home" data-view>
+                <p class="lead" data-i18n="link.intro"></p>
+                <p class="note" data-i18n="link.offline"></p>
+                <button type="button" class="btn primary" data-action="linkHost" data-i18n="link.create"></button>
+                <button type="button" class="btn" data-action="linkGuest" data-i18n="link.join"></button>
+                <p class="note shielded" data-i18n="link.privacy"></p>
+            </section>
+
+            <section id="lv-host" data-view hidden>
+                <h3 class="step" data-i18n="link.h1"></h3>
+                <div class="qr-box"><canvas id="host-qr" width="10" height="10"></canvas></div>
+                <p id="host-wait" class="note center" data-i18n="link.preparing"></p>
+                <details class="code-details">
+                    <summary data-i18n="link.showCode"></summary>
+                    <textarea id="host-code" class="field mono" readonly rows="4"></textarea>
+                    <button type="button" class="btn" data-action="copyHostCode" data-i18n="link.copy"></button>
+                </details>
+                <button type="button" id="host-share" class="btn" data-action="shareHostLink" data-i18n="link.share" hidden></button>
+                <h3 class="step" data-i18n="link.h2"></h3>
+                <textarea id="host-answer" class="field mono" rows="3" data-i18n-placeholder="link.pasteAnswer" spellcheck="false" autocomplete="off"></textarea>
+                <div class="btn-row">
+                    <button type="button" class="btn scan-only" data-action="scanAnswer" data-i18n="link.scan"></button>
+                    <button type="button" class="btn primary" data-action="hostConnect" data-i18n="link.connect"></button>
+                </div>
+                <p id="host-error" class="error" hidden></p>
+                <button type="button" class="btn quiet" data-action="linkCancel" data-i18n="cancel"></button>
+            </section>
+
+            <section id="lv-guest" data-view hidden>
+                <div id="guest-step1">
+                    <h3 class="step" data-i18n="link.g1"></h3>
+                    <textarea id="guest-offer" class="field mono" rows="3" data-i18n-placeholder="link.pasteOffer" spellcheck="false" autocomplete="off"></textarea>
+                    <div class="btn-row">
+                        <button type="button" class="btn scan-only" data-action="scanOffer" data-i18n="link.scan"></button>
+                        <button type="button" class="btn primary" data-action="guestContinue" data-i18n="link.continue"></button>
+                    </div>
+                </div>
+                <div id="guest-step2" hidden>
+                    <h3 class="step" data-i18n="link.g2"></h3>
+                    <div class="qr-box"><canvas id="guest-qr" width="10" height="10"></canvas></div>
+                    <details class="code-details">
+                        <summary data-i18n="link.showCode"></summary>
+                        <textarea id="guest-code" class="field mono" readonly rows="4"></textarea>
+                        <button type="button" class="btn" data-action="copyGuestCode" data-i18n="link.copy"></button>
+                    </details>
+                    <button type="button" id="guest-share" class="btn" data-action="shareGuestLink" data-i18n="link.share" hidden></button>
+                    <p class="note center" data-i18n="link.waitHost"></p>
+                </div>
+                <p id="guest-error" class="error" hidden></p>
+                <button type="button" class="btn quiet" data-action="linkCancel" data-i18n="cancel"></button>
+            </section>
+
+            <section id="lv-live" data-view hidden>
+                <p class="lead" id="live-title"></p>
+                <ul id="peer-list" class="peer-list"></ul>
+                <p class="note shielded" data-i18n="link.privacy"></p>
+                <button type="button" id="live-add" class="btn primary" data-action="linkAdd" data-i18n="link.add"></button>
+                <button type="button" id="live-end" class="btn danger" data-action="endSession"></button>
+            </section>
+
+            <div id="scan-box" hidden>
+                <video id="scan-video" playsinline muted></video>
+                <p class="note center" data-i18n="link.scanning"></p>
+                <button type="button" class="btn" data-action="scanStop" data-i18n="link.scanStop"></button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- PARAMÈTRES -->
+    <dialog id="config-dlg" class="sheet tall">
+        <div class="sheet-body">
+            <button type="button" class="close" data-action="closeConfig" data-i18n-aria="close">&times;</button>
+            <div class="title-row">
+                <h2 data-i18n="settings.title"></h2>
+                <span id="saved-flag" data-i18n="settings.saved"></span>
+            </div>
+
+            <details class="group" open>
+                <summary data-i18n="settings.g.general"></summary>
+                <label for="cfg-name" data-i18n="settings.name"></label>
+                <input type="text" id="cfg-name" class="field" data-i18n-placeholder="settings.namePh" autocomplete="off" maxlength="40">
+                <label for="cfg-lang" data-i18n="settings.lang"></label>
+                <select id="cfg-lang" class="field">
+                    <option value="auto" data-i18n="settings.langAuto"></option>
+                    <option value="fr">Français</option>
+                    <option value="en">English</option>
+                </select>
+            </details>
+
+            <details class="group">
+                <summary data-i18n="settings.g.display"></summary>
+                <label for="cfg-theme" data-i18n="settings.theme"></label>
+                <select id="cfg-theme" class="field">
+                    <option value="dark" data-i18n="theme.dark"></option>
+                    <option value="light" data-i18n="theme.light"></option>
+                    <option value="contrast" data-i18n="theme.contrast"></option>
+                    <option value="soft" data-i18n="theme.soft"></option>
+                </select>
+                <label for="cfg-font" data-i18n="settings.fontSize"></label>
+                <select id="cfg-font" class="field">
+                    <option value="small" data-i18n="font.small"></option>
+                    <option value="normal" data-i18n="font.normal"></option>
+                    <option value="large" data-i18n="font.large"></option>
+                    <option value="xl" data-i18n="font.xl"></option>
+                </select>
+                <div class="row"><div class="txt"><b data-i18n="settings.focus"></b><p class="note" data-i18n="settings.focusHint"></p></div>
+                    <label class="switch"><input type="checkbox" id="cfg-focus" data-i18n-aria="settings.focus"><span class="slider"></span></label></div>
+                <div class="row"><div class="txt"><b data-i18n="settings.motion"></b></div>
+                    <label class="switch"><input type="checkbox" id="cfg-motion" data-i18n-aria="settings.motion"><span class="slider"></span></label></div>
+                <div class="row"><div class="txt"><b data-i18n="settings.vibrate"></b></div>
+                    <label class="switch"><input type="checkbox" id="cfg-vibrate" data-i18n-aria="settings.vibrate"><span class="slider"></span></label></div>
+            </details>
+
+            <details class="group">
+                <summary data-i18n="settings.g.messages"></summary>
+                <div class="row"><div class="txt"><b data-i18n="settings.autoSpeak"></b><p class="note" data-i18n="settings.autoSpeakHint"></p></div>
+                    <label class="switch"><input type="checkbox" id="cfg-speak" data-i18n-aria="settings.autoSpeak"><span class="slider"></span></label></div>
+                <div class="row"><div class="txt"><b data-i18n="settings.quickOn"></b></div>
+                    <label class="switch"><input type="checkbox" id="cfg-quick-on" data-i18n-aria="settings.quickOn"><span class="slider"></span></label></div>
+                <div id="quick-options" class="sub" hidden>
+                    <label for="cfg-quick" data-i18n="settings.quick"></label>
+                    <textarea id="cfg-quick" class="field" rows="6"></textarea>
+                    <p class="note" data-i18n="settings.quickHint"></p>
+                </div>
+                <div class="row"><div class="txt"><b data-i18n="settings.autoMsg"></b></div>
+                    <label class="switch"><input type="checkbox" id="cfg-automsg" data-i18n-aria="settings.autoMsg"><span class="slider"></span></label></div>
+                <div id="auto-msg-options" class="sub" hidden>
+                    <div class="row"><div class="txt"><span data-i18n="settings.autoMsgCustom"></span></div>
+                        <label class="switch"><input type="checkbox" id="cfg-automsg-custom" data-i18n-aria="settings.autoMsgCustom"><span class="slider"></span></label></div>
+                    <textarea id="cfg-automsg-content" class="field" rows="6" data-i18n-placeholder="settings.autoMsgPh" hidden></textarea>
+                    <p id="default-msg-preview" class="note"></p>
+                </div>
+                <label for="cfg-popup" data-i18n="settings.popup"></label>
+                <textarea id="cfg-popup" class="field" rows="4"></textarea>
+            </details>
+
+            <details class="group">
+                <summary data-i18n="settings.g.privacy"></summary>
+                <p class="note shielded" data-i18n="settings.privacyIntro"></p>
+                <div class="row"><div class="txt"><b data-i18n="settings.shield"></b><p class="note" data-i18n="settings.shieldHint"></p></div>
+                    <label class="switch"><input type="checkbox" id="cfg-shield" data-i18n-aria="settings.shield"><span class="slider"></span></label></div>
+                <div class="row"><div class="txt"><b data-i18n="settings.hold"></b><p class="note" data-i18n="settings.holdHint"></p></div>
+                    <label class="switch"><input type="checkbox" id="cfg-hold" data-i18n-aria="settings.hold"><span class="slider"></span></label></div>
+                <div class="row"><div class="txt"><b data-i18n="settings.saveHistory"></b><p class="note" data-i18n="settings.saveHistoryHint"></p></div>
+                    <label class="switch"><input type="checkbox" id="cfg-save" data-i18n-aria="settings.saveHistory"><span class="slider"></span></label></div>
+                <label for="cfg-pin" data-i18n="settings.pin"></label>
+                <input type="password" id="cfg-pin" class="field" data-nosave="1" inputmode="numeric" maxlength="6" autocomplete="off" data-i18n-placeholder="settings.pinPh">
+                <div class="btn-row">
+                    <button type="button" class="btn" data-action="pinSet" data-i18n="settings.pinSet"></button>
+                    <button type="button" class="btn" id="pin-remove" data-action="pinRemove" data-i18n="settings.pinRemove"></button>
+                </div>
+                <p id="pin-status" class="note"></p>
+            </details>
+
+            <details class="group">
+                <summary data-i18n="settings.g.convo"></summary>
+                <button type="button" class="btn danger" data-action="clear" data-i18n="settings.clear"></button>
+                <p class="note center" data-i18n="settings.clearHint"></p>
+                <button type="button" class="btn quiet" data-action="reset" data-i18n="settings.reset"></button>
+            </details>
+        </div>
+    </dialog>
+
+    <!-- ALERTE -->
+    <dialog id="info-dlg" class="sheet">
+        <div class="sheet-body">
+            <h2 data-i18n="info.title"></h2>
+            <p id="info-content" class="info-text"></p>
+            <button type="button" class="btn primary" data-action="closeInfo" data-i18n="close"></button>
+        </div>
+    </dialog>
+
+    <!-- AIDE -->
+    <dialog id="about-dlg" class="sheet tall">
+        <div class="sheet-body">
+            <button type="button" class="close" data-action="closeAbout" data-i18n-aria="close">&times;</button>
+            <h2 data-i18n="about.title"></h2>
+            <h3 class="step" data-i18n="about.how"></h3>
+            <ul class="tips">
+                <li><span aria-hidden="true">1️⃣</span><div data-i18n="about.s1"></div></li>
+                <li><span aria-hidden="true">✍️</span><div data-i18n="about.s2"></div></li>
+                <li><span aria-hidden="true">⚡</span><div data-i18n-html="about.s3"></div></li>
+                <li><span aria-hidden="true">🔄</span><div data-i18n="about.s4"></div></li>
+                <li><span aria-hidden="true">🗣️</span><div data-i18n="about.s5"></div></li>
+                <li><span aria-hidden="true">🔊</span><div data-i18n="about.s6"></div></li>
+            </ul>
+            <h3 class="step" data-i18n="about.linkTitle"></h3>
+            <ul class="tips">
+                <li><span aria-hidden="true">🔗</span><div data-i18n-html="about.l1"></div></li>
+                <li><span aria-hidden="true">📴</span><div data-i18n="about.l2"></div></li>
+                <li><span aria-hidden="true">🧽</span><div data-i18n="about.l3"></div></li>
+                <li><span aria-hidden="true">📵</span><div data-i18n="about.l4"></div></li>
+            </ul>
+            <a class="btn" href="mailto:git@arniael.eu?subject=Avis%20Mellow" data-i18n="about.contact"></a>
+            <button type="button" class="btn primary" data-action="aboutStart" data-i18n="about.start"></button>
+        </div>
+    </dialog>
+
+    <!-- PARTAGE -->
+    <dialog id="share-dlg" class="sheet">
+        <div class="sheet-body">
+            <h2 data-i18n="share.title"></h2>
+            <button type="button" id="share-native" class="btn primary" data-action="shareNative" data-i18n="share.native"></button>
+            <button type="button" class="btn" data-action="shareCopy" data-i18n="share.copy"></button>
+            <button type="button" class="btn" data-action="shareDownload" data-i18n="share.download"></button>
+            <button type="button" class="btn quiet" data-action="closeShare" data-i18n="close"></button>
+        </div>
+    </dialog>
+
+    <!-- CONFIRMATION -->
+    <dialog id="confirm-dlg" class="sheet">
+        <div class="sheet-body center">
+            <p id="confirm-text" class="lead"></p>
+            <div class="btn-row">
+                <button type="button" class="btn" data-action="confirmNo" data-i18n="cancel"></button>
+                <button type="button" class="btn primary" id="confirm-yes" data-action="confirmYes"></button>
+            </div>
+        </div>
+    </dialog>
+
+    <script src="vendor/qrcode.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
